@@ -4,22 +4,17 @@ import dev.softawii.entity.AuthenticationToken;
 import dev.softawii.entity.Student;
 import dev.softawii.exceptions.AlreadyVerifiedException;
 import dev.softawii.exceptions.EmailAlreadyInUseException;
-import dev.softawii.exceptions.InvalidDomainEmailException;
 import dev.softawii.exceptions.InvalidEmailException;
 import dev.softawii.exceptions.RateLimitException;
 import dev.softawii.repository.TokenGeneratorRepository;
 import io.micronaut.context.annotation.Value;
-import io.micronaut.email.Email;
-import io.micronaut.email.MultipartBody;
 import jakarta.inject.Singleton;
 import jakarta.mail.Message;
 import jakarta.mail.MessagingException;
 import jakarta.mail.Session;
 import jakarta.mail.Transport;
-import jakarta.mail.internet.AddressException;
 import jakarta.mail.internet.InternetAddress;
 import jakarta.mail.internet.MimeMessage;
-import net.dv8tion.jda.api.entities.User;
 
 import java.io.UnsupportedEncodingException;
 import java.time.ZonedDateTime;
@@ -109,7 +104,7 @@ public class TokenGeneratorService {
     private void saveToken(Student student, String token) {
         ZonedDateTime createdAt = ZonedDateTime.now();
         ZonedDateTime expiresAt = createdAt.plusMinutes(5);
-        this.tokenGeneratorRepository.saveAndFlush(new AuthenticationToken(student, token, createdAt, expiresAt));
+        this.tokenGeneratorRepository.saveAndFlush(new AuthenticationToken(student.getDiscordUserId(), student, token, createdAt, expiresAt));
     }
 
     private Student getStudent(Long userDiscordId, String email) throws EmailAlreadyInUseException {

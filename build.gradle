@@ -21,10 +21,7 @@ dependencies {
     implementation("io.micronaut.serde:micronaut-serde-jackson")
     implementation("io.micronaut.sql:micronaut-hibernate-jpa")
     implementation("io.micronaut.sql:micronaut-jdbc-hikari")
-    implementation("com.github.Softawii:curupira:0.3.0:all")
-//    implementation("net.dv8tion:JDA:5.0.0-beta.18"){
-//        exclude module: 'opus-java'
-//    }
+    implementation("com.github.Softawii:curupira:3e58c3fe74:all")
     compileOnly("io.micronaut:micronaut-http-client")
     runtimeOnly("ch.qos.logback:logback-classic")
     runtimeOnly("com.h2database:h2")
@@ -61,7 +58,6 @@ micronaut {
         cacheEnvironment = true
         optimizeClassLoading = true
         deduceEnvironment = true
-        optimizeNetty = true
     }
 }
 
