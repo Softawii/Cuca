@@ -20,6 +20,8 @@ import net.dv8tion.jda.api.interactions.components.text.TextInput;
 import net.dv8tion.jda.api.interactions.components.text.TextInputStyle;
 import net.dv8tion.jda.api.interactions.modals.Modal;
 
+import java.util.Objects;
+
 /**
  * This controller is responsible for generating tokens for users to verify their email addresses.
  *
@@ -54,9 +56,20 @@ public class TokenGeneratorController {
         event.replyModal(builder.build()).queue();
     }
 
+    /**
+     * This method will be called when the user confirms the modal interaction.
+     *
+     * Needs to:
+     * 1. Check if the email is valid (@ufrrj.br)
+     * 2. Check if the email is already registered
+     * 3. Generate a token
+     * 4. Send the token to the user's email
+     * 5. Send a message to the user saying that the token was sent to the email.
+     *
+     */
     @IModal(id=MODAL_RESPONSE_CALLBACK)
     public static void ProcessModalCallback(ModalInteractionEvent event) {
-        String email = event.getValue("email").getAsString();
+        String email = Objects.requireNonNull(event.getValue("email")).getAsString();
         String token = "hahahahahaha";
         event.reply("Your token is: " + token).queue();
     }

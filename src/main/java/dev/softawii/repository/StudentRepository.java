@@ -8,4 +8,6 @@ import io.micronaut.data.jpa.repository.JpaRepository;
 @Repository
 public interface StudentRepository extends JpaRepository<Student, Long> {
     boolean existsByDiscordUserId(Long discordUserId);
+    Optional<Student> findByDiscordUserId(Long discordUserId);
+    Optional<Student> findByEmail(String email);
 }

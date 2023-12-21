@@ -20,6 +20,12 @@ public class Student {
     public Student() {
     }
 
+    public Student(Long discordUserId, String email) {
+        this.discordUserId = discordUserId;
+        this.email = email;
+        this.verified = false;
+    }
+
     public Long getId() {
         return id;
     }
@@ -42,5 +48,13 @@ public class Student {
 
     public void setEmail(String email) {
         this.email = email;
+    }
+
+    public boolean isVerified() {
+        return verified;
+    }
+
+    public void setVerified(Boolean verified) {
+        this.verified = verified;
     }
 }
