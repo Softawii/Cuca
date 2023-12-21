@@ -4,17 +4,14 @@ import com.softawii.curupira.annotations.IButton;
 import com.softawii.curupira.annotations.ICommand;
 import com.softawii.curupira.annotations.IGroup;
 import com.softawii.curupira.annotations.IModal;
-import com.softawii.curupira.properties.Environment;
-import net.dv8tion.jda.api.JDA;
+import dev.softawii.service.StudentService;
+import io.micronaut.context.annotation.Context;
 import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
-import net.dv8tion.jda.api.entities.channel.middleman.MessageChannel;
-import net.dv8tion.jda.api.entities.channel.unions.MessageChannelUnion;
 import net.dv8tion.jda.api.events.interaction.ModalInteractionEvent;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent;
-import net.dv8tion.jda.api.interactions.components.ItemComponent;
 import net.dv8tion.jda.api.interactions.components.buttons.Button;
 import net.dv8tion.jda.api.interactions.components.text.TextInput;
 import net.dv8tion.jda.api.interactions.components.text.TextInputStyle;
@@ -29,10 +26,18 @@ import java.util.Objects;
  */
 
 @IGroup(name = "token", description = "Token generator", hidden = false)
+@Context
 public class TokenGeneratorController {
 
     private static final String TOKEN_GENERATOR_MESSAGE = "dev-sa-token-generator-message";
     private static final String MODAL_RESPONSE_CALLBACK = "dev-sa-modal-generator-message";
+    private static StudentService studentService;
+
+    public TokenGeneratorController(
+            StudentService studentService
+    ) {
+        TokenGeneratorController.studentService = studentService;
+    }
 
     @ICommand(name="setup", description = "Setup the token generator message", permissions = {Permission.ADMINISTRATOR})
     public static void SendMessage(SlashCommandInteractionEvent event) {

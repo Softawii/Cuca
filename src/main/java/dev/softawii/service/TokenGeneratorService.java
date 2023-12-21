@@ -6,7 +6,7 @@ import dev.softawii.exceptions.AlreadyVerifiedException;
 import dev.softawii.exceptions.EmailAlreadyInUseException;
 import dev.softawii.exceptions.InvalidEmailException;
 import dev.softawii.exceptions.RateLimitException;
-import dev.softawii.repository.TokenGeneratorRepository;
+import dev.softawii.repository.AuthenticationTokenRepository;
 import io.micronaut.context.annotation.Value;
 import jakarta.inject.Singleton;
 import jakarta.mail.Message;
@@ -27,19 +27,19 @@ import java.util.regex.Pattern;
 @Singleton
 public class TokenGeneratorService {
 
-    private final StudentService studentService;
-    private final TokenGeneratorRepository tokenGeneratorRepository;
-    private final Pattern ruralPattern;
+    private final StudentService                studentService;
+    private final AuthenticationTokenRepository authenticationTokenRepository;
+    private final Pattern                       ruralPattern;
     private final Pattern gmailPattern;
     private final String gmailRegex;
     private final int tokenLength;
     private final EmailService emailService;
 
     public TokenGeneratorService(
-            @Value("${email_domain}") String emailDomain,
+            @Value("${email_domain:ufrrj.br}") String emailDomain,
             @Value("${token_length:6}") int tokenLength,
             StudentService studentService,
-            TokenGeneratorRepository tokenGeneratorRepository,
+            AuthenticationTokenRepository authenticationTokenRepository,
             EmailService emailService
     ) {
         this.gmailRegex     = "\\+(.*?)@";
@@ -47,7 +47,7 @@ public class TokenGeneratorService {
         this.ruralPattern   = Pattern.compile("^[a-zA-Z0-9._%+-]+@ufrrj\\.br$");
         this.tokenLength    = tokenLength;
         this.studentService = studentService;
-        this.tokenGeneratorRepository = tokenGeneratorRepository;
+        this.authenticationTokenRepository = authenticationTokenRepository;
         this.emailService = emailService;
     }
 
@@ -94,7 +94,7 @@ public class TokenGeneratorService {
 
         Student student = getStudent(userDiscordId, email);
         if(student.isVerified()) throw new AlreadyVerifiedException("User is already verified");
-        if (this.tokenGeneratorRepository.validTokenExists(userDiscordId)) throw new RateLimitException();
+        if (this.authenticationTokenRepository.validTokenExists(userDiscordId)) throw new RateLimitException();
 
         String token = generateRandomToken();
         saveToken(student, token);
@@ -104,7 +104,7 @@ public class TokenGeneratorService {
     private void saveToken(Student student, String token) {
         ZonedDateTime createdAt = ZonedDateTime.now();
         ZonedDateTime expiresAt = createdAt.plusMinutes(5);
-        this.tokenGeneratorRepository.saveAndFlush(new AuthenticationToken(student.getDiscordUserId(), student, token, createdAt, expiresAt));
+        this.authenticationTokenRepository.saveAndFlush(new AuthenticationToken(student, token, createdAt, expiresAt));
     }
 
     private Student getStudent(Long userDiscordId, String email) throws EmailAlreadyInUseException {
@@ -138,7 +138,6 @@ public class TokenGeneratorService {
     }
 
     private void send(String email, String token) {
-        emailService.send(email, token);
     }
 
 }

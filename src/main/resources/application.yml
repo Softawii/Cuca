@@ -3,11 +3,11 @@ micronaut:
     name: dcc-bot
 datasources:
   default:
-    url: jdbc:h2:mem:devDb;LOCK_TIMEOUT=10000;DB_CLOSE_ON_EXIT=FALSE
+    url: jdbc:postgresql://localhost:5432/cuca
     username: sa
-    password: ''
-    driver-class-name: org.h2.Driver
+    password: sa
+    driver-class-name: org.postgresql.Driver
     maximum-pool-size: 10
 jpa.default:
-  properties.hibernate.hbm2ddl.auto: update
+  properties.hibernate.hbm2ddl.auto: create-drop
   entity-scan.packages: 'dev.softawii.entity'

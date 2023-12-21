@@ -7,22 +7,25 @@ import java.time.ZonedDateTime;
 @Entity
 public class AuthenticationToken {
 
-    @Id
-    private Long discordId;
     @ManyToOne
+    @Id
+    @JoinColumn
     private Student student;
+
     @Column(nullable = false, unique = false)
     private String token;
+
     @Column
     private ZonedDateTime createdAt;
+
     @Column
     private ZonedDateTime expiresAt;
-    @Column
-    private Boolean used;
+
+    @Column(nullable = false)
+    private Boolean used = Boolean.FALSE;
 
     //region Constructors
-    public AuthenticationToken(Long discordId, Student student, String token, ZonedDateTime createdAt, ZonedDateTime expiresAt) {
-        this.discordId = discordId;
+    public AuthenticationToken(Student student, String token, ZonedDateTime createdAt, ZonedDateTime expiresAt) {
         this.student = student;
         this.token = token;
         this.createdAt = createdAt;
@@ -34,14 +37,6 @@ public class AuthenticationToken {
     //endregion
 
     //region Getters and Setters
-
-    public Long getDiscordId() {
-        return discordId;
-    }
-
-    public void setDiscordId(Long discordId) {
-        this.discordId = discordId;
-    }
 
     public Student getStudent() {
         return student;
@@ -84,4 +79,15 @@ public class AuthenticationToken {
     }
 
     //endregion
+
+    @Override
+    public String toString() {
+        return "AuthenticationToken{" +
+               "student=" + student +
+               ", token='" + token + '\'' +
+               ", createdAt=" + createdAt +
+               ", expiresAt=" + expiresAt +
+               ", used=" + used +
+               '}';
+    }
 }

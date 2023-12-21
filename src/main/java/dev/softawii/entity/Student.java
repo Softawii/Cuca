@@ -57,4 +57,14 @@ public class Student {
     public void setVerified(Boolean verified) {
         this.verified = verified;
     }
+
+    @Override
+    public String toString() {
+        return "Student{" +
+               "id=" + id +
+               ", discordUserId=" + discordUserId +
+               ", email='" + email + '\'' +
+               ", verified=" + verified +
+               '}';
+    }
 }

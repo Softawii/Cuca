@@ -25,6 +25,7 @@ dependencies {
     compileOnly("io.micronaut:micronaut-http-client")
     runtimeOnly("ch.qos.logback:logback-classic")
     runtimeOnly("com.h2database:h2")
+    implementation('org.postgresql:postgresql')
     runtimeOnly("org.eclipse.angus:angus-mail")
     runtimeOnly("org.yaml:snakeyaml")
     testImplementation("io.micronaut:micronaut-http-client")
@@ -42,8 +43,6 @@ java {
 
 graalvmNative.toolchainDetection = false
 micronaut {
-    ignoredAutomaticDependencies.add("io.micronaut.data:micronaut-data-processor")
-    // runtime("netty")
     testRuntime("junit5")
     processing {
         incremental(true)

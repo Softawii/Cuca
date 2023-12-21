@@ -26,7 +26,7 @@ public class AppConfig {
     }
 
     @Context
-    public Curupira curupira(JDA jda) {
-        return new Curupira(jda, false, null, "dev.softawii.controller");
+    public Curupira curupira(JDA jda, @Value("${curupira.reset:false}") boolean reset) {
+        return new Curupira(jda, reset, null, "dev.softawii.controller");
     }
 }
