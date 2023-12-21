@@ -1,5 +1,6 @@
 package dev.softawii.config;
 
+import com.softawii.curupira.core.Curupira;
 import io.micronaut.context.annotation.Context;
 import io.micronaut.context.annotation.Factory;
 import io.micronaut.context.annotation.Value;
@@ -22,5 +23,10 @@ public class AppConfig {
             throw new RuntimeException("Bot is in more than 1 guild. Shutting down");
         }
         return jda;
+    }
+
+    @Context
+    public Curupira curupira(JDA jda) {
+        return new Curupira(jda, false, null, "dev.softawii.controller");
     }
 }
