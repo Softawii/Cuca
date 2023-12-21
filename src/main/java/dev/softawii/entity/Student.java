@@ -14,6 +14,9 @@ public class Student {
     @Column(nullable = false, unique = true)
     private String email;
 
+    @Column(columnDefinition = "boolean default false")
+    private Boolean verified;
+
     public Student() {
     }
 
