@@ -2,24 +2,13 @@ package dev.softawii.service;
 
 import dev.softawii.entity.AuthenticationToken;
 import dev.softawii.entity.Student;
-import dev.softawii.exceptions.AlreadyVerifiedException;
-import dev.softawii.exceptions.EmailAlreadyInUseException;
-import dev.softawii.exceptions.InvalidEmailException;
-import dev.softawii.exceptions.RateLimitException;
+import dev.softawii.exceptions.*;
 import dev.softawii.repository.AuthenticationTokenRepository;
 import io.micronaut.context.annotation.Value;
 import jakarta.inject.Singleton;
-import jakarta.mail.Message;
-import jakarta.mail.MessagingException;
-import jakarta.mail.Session;
-import jakarta.mail.Transport;
-import jakarta.mail.internet.InternetAddress;
-import jakarta.mail.internet.MimeMessage;
 
-import java.io.UnsupportedEncodingException;
 import java.time.ZonedDateTime;
 import java.util.Optional;
-import java.util.Properties;
 import java.util.UUID;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -87,7 +76,7 @@ public class TokenGeneratorService {
      * 2. If the user is already verified
      * 3. If the user has a valid token (not used or expired)
      */
-    public void generateToken(Long userDiscordId, String email) throws InvalidEmailException, AlreadyVerifiedException, EmailAlreadyInUseException, RateLimitException {
+    public void generateToken(Long userDiscordId, String email) throws InvalidEmailException, AlreadyVerifiedException, EmailAlreadyInUseException, RateLimitException, FailedToSendEmailException {
         email = processEmail(email);
         if(!isValidEmail(email)) throw new InvalidEmailException("Invalid email");
 
@@ -119,7 +108,7 @@ public class TokenGeneratorService {
         return student;
     }
 
-    private void sendEmail(String to, String token) {
+    private void sendEmail(String to, String token) throws FailedToSendEmailException {
         emailService.send(to, "Authentication Token", token);
     }
 

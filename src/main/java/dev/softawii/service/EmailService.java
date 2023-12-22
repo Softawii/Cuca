@@ -1,5 +1,6 @@
 package dev.softawii.service;
 
+import dev.softawii.exceptions.FailedToSendEmailException;
 import dev.softawii.service.mail.EmailProvider;
 import jakarta.inject.Singleton;
 
@@ -12,7 +13,7 @@ public class EmailService {
         this.emailProvider = emailProvider;
     }
 
-    public void send(String to, String subject, String content) {
+    public void send(String to, String subject, String content) throws FailedToSendEmailException {
         emailProvider.send(to, subject, content);
     }
 }
