@@ -7,10 +7,19 @@ import java.time.ZonedDateTime;
 @Entity
 public class AuthenticationToken {
 
-    @ManyToOne
     @Id
-    @JoinColumn
-    private Student student;
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    /**
+     * Maybe an attacker tries to create a token for a student that doesn't exist
+     * so that information is not unique...
+     */
+    @Column(nullable = false, unique = false)
+    private String email;
+
+    @Column(nullable = false, unique = false)
+    private Long discordUserId;
 
     @Column(nullable = false, unique = false)
     private String token;
@@ -25,8 +34,9 @@ public class AuthenticationToken {
     private Boolean used = Boolean.FALSE;
 
     //region Constructors
-    public AuthenticationToken(Student student, String token, ZonedDateTime createdAt, ZonedDateTime expiresAt) {
-        this.student = student;
+    public AuthenticationToken(Long discordUserId, String email, String token, ZonedDateTime createdAt, ZonedDateTime expiresAt) {
+        this.discordUserId = discordUserId;
+        this.email = email;
         this.token = token;
         this.createdAt = createdAt;
         this.expiresAt = expiresAt;
@@ -38,12 +48,29 @@ public class AuthenticationToken {
 
     //region Getters and Setters
 
-    public Student getStudent() {
-        return student;
+
+    public Long getId() {
+        return id;
     }
 
-    public void setStudent(Student student) {
-        this.student = student;
+    public void setId(Long id) {
+        this.id = id;
+    }
+
+    public String getEmail() {
+        return email;
+    }
+
+    public void setEmail(String email) {
+        this.email = email;
+    }
+
+    public Long getDiscordUserId() {
+        return discordUserId;
+    }
+
+    public void setDiscordUserId(Long discordUserId) {
+        this.discordUserId = discordUserId;
     }
 
     public String getToken() {
@@ -83,11 +110,13 @@ public class AuthenticationToken {
     @Override
     public String toString() {
         return "AuthenticationToken{" +
-               "student=" + student +
-               ", token='" + token + '\'' +
-               ", createdAt=" + createdAt +
-               ", expiresAt=" + expiresAt +
-               ", used=" + used +
-               '}';
+                "id=" + id +
+                ", email='" + email + '\'' +
+                ", discordUserId=" + discordUserId +
+                ", token='" + token + '\'' +
+                ", createdAt=" + createdAt +
+                ", expiresAt=" + expiresAt +
+                ", used=" + used +
+                '}';
     }
 }

@@ -13,10 +13,4 @@ public interface StudentRepository extends JpaRepository<Student, Long> {
     boolean existsByDiscordUserId(Long discordUserId);
     Optional<Student> findByDiscordUserId(Long discordUserId);
     Optional<Student> findByEmail(String email);
-    @Query("""
-            update Student s
-            set s.verified = true
-            where s.discordUserId = :discordUserId
-            """)
-    void verifyStudentByDiscordUserId(Long discordUserId);
 }

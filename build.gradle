@@ -22,6 +22,7 @@ dependencies {
     implementation("io.micronaut.sql:micronaut-hibernate-jpa")
     implementation("io.micronaut.sql:micronaut-jdbc-hikari")
     implementation("com.github.Softawii:curupira:3e58c3fe74:all")
+    implementation("com.github.ben-manes.caffeine:caffeine:3.1.8")
     compileOnly("io.micronaut:micronaut-http-client")
     runtimeOnly("ch.qos.logback:logback-classic")
     runtimeOnly("com.h2database:h2")
@@ -29,6 +30,7 @@ dependencies {
     runtimeOnly("org.eclipse.angus:angus-mail")
     runtimeOnly("org.yaml:snakeyaml")
     testImplementation("io.micronaut:micronaut-http-client")
+
 }
 
 

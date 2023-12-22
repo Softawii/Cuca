@@ -52,6 +52,17 @@ public class AuthenticationTokenController {
 
     @IButton(id = TOKEN_REGISTRATION_BUTTON)
     public static void generateRegistrationModal(ButtonInteractionEvent event) {
+        long idLong = event.getUser().getIdLong();
+        if (authenticationTokenService.checkExistingDiscordId(idLong)) {
+            event.reply("You are already registered.").setEphemeral(true).queue();
+            return;
+        }
+
+        if (authenticationTokenService.checkTokenAlreadyGenerated(idLong)) {
+            event.reply("You already have a token generated. Check your email.").setEphemeral(true).queue();
+            return;
+        }
+
         Modal.Builder builder = Modal.create(REGISTRATION_MODAL, "Authentication");
         // Add Email Input
         builder.addActionRow(TextInput.create("email", "Email", TextInputStyle.SHORT)
@@ -65,6 +76,17 @@ public class AuthenticationTokenController {
 
     @IButton(id = TOKEN_AUTHENTICATION_BUTTON)
     public static void generateAuthenticationModal(ButtonInteractionEvent event) {
+        long idLong = event.getUser().getIdLong();
+        if (authenticationTokenService.checkExistingDiscordId(idLong)) {
+            event.reply("You are already registered.").setEphemeral(true).queue();
+            return;
+        }
+
+        if (!authenticationTokenService.checkTokenAlreadyGenerated(idLong)) {
+            event.reply("You don't have a token generated. Click the register button to generate one").setEphemeral(true).queue();
+            return;
+        }
+
         Modal.Builder builder = Modal.create(AUTHENTICATION_MODAL, "Authentication");
         // Add Email Input
         builder.addActionRow(TextInput.create("token", "Token", TextInputStyle.SHORT)
@@ -98,10 +120,8 @@ public class AuthenticationTokenController {
             hook.sendMessage("Email sent to: " + email).queue();
         } catch (InvalidEmailException e) {
             hook.sendMessage("Invalid email").queue();
-        } catch (AlreadyVerifiedException e) {
-            hook.sendMessage("Email already verified").queue();
-        } catch (EmailAlreadyInUseException e) {
-            hook.sendMessage("Email already in use").queue();
+        } catch (AlreadyVerifiedException | EmailAlreadyInUseException e) {
+            hook.sendMessage(e.getMessage()).queue();
         } catch (RateLimitException e) {
             hook.sendMessage("Rate limited. Try again in a few minutes").queue();
         } catch (FailedToSendEmailException e) {

@@ -35,8 +35,4 @@ public class StudentService {
     public Optional<Student> findByEmail(String email) {
         return repository.findByEmail(email);
     }
-
-    public void verifyStudent(Long discordId) {
-        repository.verifyStudentByDiscordUserId(discordId);
-    }
 }

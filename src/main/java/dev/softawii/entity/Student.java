@@ -14,16 +14,12 @@ public class Student {
     @Column(nullable = false, unique = true)
     private String email;
 
-    @Column(columnDefinition = "boolean default false")
-    private Boolean verified;
-
     public Student() {
     }
 
     public Student(Long discordUserId, String email) {
         this.discordUserId = discordUserId;
         this.email = email;
-        this.verified = false;
     }
 
     public Long getId() {
@@ -50,21 +46,12 @@ public class Student {
         this.email = email;
     }
 
-    public boolean isVerified() {
-        return verified;
-    }
-
-    public void setVerified(Boolean verified) {
-        this.verified = verified;
-    }
-
     @Override
     public String toString() {
         return "Student{" +
                "id=" + id +
                ", discordUserId=" + discordUserId +
                ", email='" + email + '\'' +
-               ", verified=" + verified +
                '}';
     }
 }
