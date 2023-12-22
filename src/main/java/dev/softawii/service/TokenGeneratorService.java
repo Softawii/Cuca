@@ -32,7 +32,7 @@ public class TokenGeneratorService {
     private final Pattern                       ruralPattern;
     private final Pattern gmailPattern;
     private final String gmailRegex;
-    private final int tokenLength;
+    private final int           tokenLength;
     private final EmailService emailService;
 
     public TokenGeneratorService(
@@ -40,15 +40,14 @@ public class TokenGeneratorService {
             @Value("${token_length:6}") int tokenLength,
             StudentService studentService,
             AuthenticationTokenRepository authenticationTokenRepository,
-            EmailService emailService
-    ) {
+            EmailService emailService) {
+        this.emailService = emailService;
         this.gmailRegex     = "\\+(.*?)@";
         this.gmailPattern   = Pattern.compile(this.gmailRegex);
         this.ruralPattern   = Pattern.compile("^[a-zA-Z0-9._%+-]+@ufrrj\\.br$");
         this.tokenLength    = tokenLength;
         this.studentService = studentService;
         this.authenticationTokenRepository = authenticationTokenRepository;
-        this.emailService = emailService;
     }
 
     /**
@@ -120,24 +119,8 @@ public class TokenGeneratorService {
         return student;
     }
 
-    private void sendEmail(String email, String token) {
-        Properties props = new Properties();
-        Session session = Session.getDefaultInstance(props, null);
-
-        try {
-            Message msg = new MimeMessage(session);
-            msg.setFrom(new InternetAddress("admin@example.com", "Example.com Admin"));
-            msg.addRecipient(Message.RecipientType.TO,
-                    new InternetAddress("user@example.com", "Mr. User"));
-            msg.setSubject("Your Example.com account has been activated");
-            msg.setText("This is a test");
-            Transport.send(msg);
-        } catch (MessagingException | UnsupportedEncodingException e) {
-            // ...
-        }
-    }
-
-    private void send(String email, String token) {
+    private void sendEmail(String to, String token) {
+        emailService.send(to, "Authentication Token", token);
     }
 
 }
