@@ -6,6 +6,7 @@ import dev.softawii.exceptions.*;
 import dev.softawii.repository.AuthenticationTokenRepository;
 import io.micronaut.context.annotation.Value;
 import jakarta.inject.Singleton;
+import jakarta.transaction.Transactional;
 
 import java.time.ZonedDateTime;
 import java.util.Optional;
@@ -14,27 +15,27 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 @Singleton
-public class TokenGeneratorService {
+public class AuthenticationTokenService {
 
     private final StudentService                studentService;
     private final AuthenticationTokenRepository authenticationTokenRepository;
     private final Pattern                       ruralPattern;
-    private final Pattern gmailPattern;
-    private final String gmailRegex;
-    private final int           tokenLength;
-    private final EmailService emailService;
+    private final Pattern                       gmailPattern;
+    private final String                        gmailRegex;
+    private final int                           tokenLength;
+    private final EmailService                  emailService;
 
-    public TokenGeneratorService(
+    public AuthenticationTokenService(
             @Value("${email_domain:ufrrj.br}") String emailDomain,
             @Value("${token_length:6}") int tokenLength,
             StudentService studentService,
             AuthenticationTokenRepository authenticationTokenRepository,
             EmailService emailService) {
         this.emailService = emailService;
-        this.gmailRegex     = "\\+(.*?)@";
-        this.gmailPattern   = Pattern.compile(this.gmailRegex);
-        this.ruralPattern   = Pattern.compile("^[a-zA-Z0-9._%+-]+@ufrrj\\.br$");
-        this.tokenLength    = tokenLength;
+        this.gmailRegex = "\\+(.*?)@";
+        this.gmailPattern = Pattern.compile(this.gmailRegex);
+        this.ruralPattern = Pattern.compile("^[a-zA-Z0-9._%+-]+@ufrrj\\.br$");
+        this.tokenLength = tokenLength;
         this.studentService = studentService;
         this.authenticationTokenRepository = authenticationTokenRepository;
     }
@@ -78,15 +79,27 @@ public class TokenGeneratorService {
      */
     public void generateToken(Long userDiscordId, String email) throws InvalidEmailException, AlreadyVerifiedException, EmailAlreadyInUseException, RateLimitException, FailedToSendEmailException {
         email = processEmail(email);
-        if(!isValidEmail(email)) throw new InvalidEmailException("Invalid email");
+        if (!isValidEmail(email)) throw new InvalidEmailException("Invalid email");
 
         Student student = getStudent(userDiscordId, email);
-        if(student.isVerified()) throw new AlreadyVerifiedException("User is already verified");
+        if (student.isVerified()) throw new AlreadyVerifiedException("User is already verified");
         if (this.authenticationTokenRepository.validTokenExists(userDiscordId)) throw new RateLimitException();
 
         String token = generateRandomToken();
         saveToken(student, token);
         sendEmail(email, token);
+    }
+
+    @Transactional
+    public void validateToken(Long userDiscordId, String token) throws TokenNotFoundException {
+        Optional<AuthenticationToken> authTokenOptional = authenticationTokenRepository.findValidToken(token, userDiscordId);
+        if (authTokenOptional.isEmpty()) {
+            throw new TokenNotFoundException();
+        }
+        AuthenticationToken authToken = authTokenOptional.get();
+        authToken.setUsed(true);
+        authenticationTokenRepository.saveAndFlush(authToken);
+        studentService.verifyStudent(userDiscordId);
     }
 
     private void saveToken(Student student, String token) {
@@ -97,9 +110,10 @@ public class TokenGeneratorService {
 
     private Student getStudent(Long userDiscordId, String email) throws EmailAlreadyInUseException {
         Optional<Student> optionalEmailStudent = this.studentService.findByEmail(email);
-        Student student;
+        Student           student;
         if (optionalEmailStudent.isPresent()) {
-            if (!optionalEmailStudent.get().getDiscordUserId().equals(userDiscordId)) throw new EmailAlreadyInUseException();
+            if (!optionalEmailStudent.get().getDiscordUserId().equals(userDiscordId))
+                throw new EmailAlreadyInUseException();
 
             student = optionalEmailStudent.get();
         } else {
