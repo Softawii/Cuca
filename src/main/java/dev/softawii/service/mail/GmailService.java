@@ -5,6 +5,8 @@ import io.micronaut.context.annotation.Value;
 import jakarta.inject.Named;
 import jakarta.inject.Singleton;
 import jakarta.mail.*;
+import jakarta.mail.event.ConnectionEvent;
+import jakarta.mail.event.ConnectionListener;
 import jakarta.mail.event.TransportEvent;
 import jakarta.mail.event.TransportListener;
 import jakarta.mail.internet.AddressException;
@@ -102,12 +104,33 @@ public class GmailService implements EmailProvider {
         Authenticator authenticator = new GmailAuthenticator(this.username, this.password);
         this.session = Session.getDefaultInstance(defaultProperties, authenticator);
         try {
-            this.transport = this.session.getTransport("smtp");
+            transport = this.session.getTransport("smtp");
             transport.addTransportListener(new GmailTransportListener());
-            this.transport.connect(this.username, this.password);
+            transport.addConnectionListener(new GmailConnectionListener());
+            transport.connect(this.username, this.password);
             LOGGER.info("Session set up");
         } catch (Exception e) {
+            LOGGER.info("Failed to setup session");
             throw new RuntimeException();
+        }
+    }
+
+    private static class GmailConnectionListener implements ConnectionListener {
+        private static final Logger LOGGER = LoggerFactory.getLogger(GmailConnectionListener.class);
+
+        @Override
+        public void opened(ConnectionEvent e) {
+            LOGGER.info("Connection opened");
+        }
+
+        @Override
+        public void disconnected(ConnectionEvent e) {
+            LOGGER.info("Connection disconnected");
+        }
+
+        @Override
+        public void closed(ConnectionEvent e) {
+            LOGGER.info("Connection closed");
         }
     }
 
