@@ -32,6 +32,7 @@ public class AuthenticationTokenService {
     private final AuthenticationTokenRepository authenticationTokenRepository;
     private final EmailTemplateService          emailTemplateService;
     private final EmailService                  emailService;
+    private final EventService                  eventService;
 
     private final EmailUtil emailUtil;
 
@@ -47,13 +48,14 @@ public class AuthenticationTokenService {
             StudentService studentService,
             AuthenticationTokenRepository authenticationTokenRepository,
             EmailTemplateService emailTemplateService, EmailService emailService,
-            EmailUtil emailUtil
+            EventService eventService, EmailUtil emailUtil
     ) {
         this.emailTemplateService = emailTemplateService;
         this.emailService = emailService;
         this.tokenLength = tokenLength;
         this.studentService = studentService;
         this.authenticationTokenRepository = authenticationTokenRepository;
+        this.eventService = eventService;
         this.emailUtil = emailUtil;
         this.tokenValidationTentativesCache = Caffeine.newBuilder()
                 .expireAfterWrite(5, TimeUnit.MINUTES)
@@ -116,6 +118,7 @@ public class AuthenticationTokenService {
         authToken.setUsed(true);
         authenticationTokenRepository.saveAndFlush(authToken);
         studentService.createStudent(authToken.getDiscordUserId(), authToken.getEmail());
+        this.eventService.dispatch(String.format("User <@!%s> is validated", userDiscordId));
     }
 
     private void computeValidationTentative(Long userDiscordId) {
@@ -126,6 +129,7 @@ public class AuthenticationTokenService {
             this.tokenValidationBanCache.put(userDiscordId, Boolean.TRUE);
             this.tokenValidationTentativesCache.invalidate(userDiscordId);
             LOGGER.info(String.format("User '%d' is rate limited", userDiscordId));
+            this.eventService.dispatch(String.format("User <@!%s> is rate limited", userDiscordId));
         }
     }
 
