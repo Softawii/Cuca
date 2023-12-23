@@ -11,6 +11,7 @@ import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.User;
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
+import net.dv8tion.jda.api.entities.channel.unions.GuildMessageChannelUnion;
 import net.dv8tion.jda.api.events.interaction.ModalInteractionEvent;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent;
@@ -115,10 +116,11 @@ public class AuthenticationTokenController {
         long   discordUserId = event.getUser().getIdLong();
         String email         = Objects.requireNonNull(event.getValue("email")).getAsString();
         User   user          = event.getUser();
+        GuildMessageChannelUnion channel = event.getGuildChannel();
 
         InteractionHook hook = event.getHook().setEphemeral(true);
         try {
-            authenticationTokenService.generateToken(user, discordUserId, email);
+            authenticationTokenService.generateToken(user, channel, discordUserId, email);
             hook.sendMessage("Email sent to: " + email).queue();
         } catch (InvalidEmailException e) {
             hook.sendMessage("Invalid email").queue();

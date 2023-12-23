@@ -9,11 +9,17 @@ import dev.softawii.repository.AuthenticationTokenRepository;
 import io.micronaut.context.annotation.Value;
 import jakarta.inject.Singleton;
 import jakarta.transaction.Transactional;
+import net.dv8tion.jda.api.entities.Invite;
 import net.dv8tion.jda.api.entities.User;
+import net.dv8tion.jda.api.entities.channel.unions.GuildMessageChannelUnion;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.time.ZonedDateTime;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
@@ -34,10 +40,12 @@ public class AuthenticationTokenService {
     private final        Cache<Long, Long>             tokenValidationTentativesCache; // userDiscordId -> count
     private final        Cache<Long, Boolean>          tokenValidationBanCache; // userDiscordId -> unused
     private final        int                           maxValidationTentatives;
+    private final        String                        htmlTemplate;
 
     public AuthenticationTokenService(
             @Value("${email_domain:ufrrj.br}") String emailDomain,
             @Value("${token_length:6}") int tokenLength,
+            @Value("${html_template_path}") String htmlTemplatePath,
             StudentService studentService,
             AuthenticationTokenRepository authenticationTokenRepository,
             EmailService emailService
@@ -56,6 +64,17 @@ public class AuthenticationTokenService {
                 .expireAfterWrite(5, TimeUnit.MINUTES)
                 .build();
         this.maxValidationTentatives = 3;
+
+        try {
+            this.htmlTemplate = loadHtmlTemplate(htmlTemplatePath);
+        } catch (IOException e) {
+            LOGGER.error("Failed to load email template", e);
+            throw new RuntimeException(e);
+        }
+    }
+
+    private String loadHtmlTemplate(String path) throws IOException {
+        return Files.readString(Paths.get(path));
     }
 
     /**
@@ -95,14 +114,14 @@ public class AuthenticationTokenService {
      * 2. If the user is already verified
      * 3. If the user has a valid token (not used or expired)
      */
-    public void generateToken(User user, Long userDiscordId, String email) throws InvalidEmailException, AlreadyVerifiedException, EmailAlreadyInUseException, RateLimitException, FailedToSendEmailException {
+    public void generateToken(User user, GuildMessageChannelUnion channel, Long userDiscordId, String email) throws InvalidEmailException, AlreadyVerifiedException, EmailAlreadyInUseException, RateLimitException, FailedToSendEmailException {
         email = processEmail(email);
         if (!isValidEmail(email)) throw new InvalidEmailException("Invalid email");
         if (checkExistingDiscordId(userDiscordId)) throw new AlreadyVerifiedException("You are already verified");
         if (checkExistingEmail(email)) throw new EmailAlreadyInUseException("Email already in use");
         String token = generateRandomToken();
 
-        if (sendEmail(user, email, token)) {
+        if (sendEmail(user, channel, email, token)) {
             saveToken(userDiscordId, email, token);
         } else {
             throw new FailedToSendEmailException("Failed to send email");
@@ -162,29 +181,26 @@ public class AuthenticationTokenService {
         return this.studentService.findByDiscordId(discordUserId);
     }
 
-    private boolean sendEmail(User user, String to, String token) throws FailedToSendEmailException {
+    private boolean sendEmail(User user, GuildMessageChannelUnion channel, String to, String token) throws FailedToSendEmailException {
         String name      = user.getName();
         String avatarUrl = user.getEffectiveAvatarUrl();
 
-        String html = """
-                <!doctype html>
-                <html>
-                <head>
-                    <meta charset="UTF-8">
-                    <meta name="viewport"
-                          content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
-                    <meta http-equiv="X-UA-Compatible" content="ie=edge">
-                    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
-                </head>
-                <body>
-                    Token: %s <br>
-                    Name: %s <br>
-                    avatarUrl: %s <br>
-                    <img src="%s" />
-                </body>
-                </html>
-                """.formatted(token, name, avatarUrl, avatarUrl);
-        return emailService.enqueue(to, "Authentication Token", html);
+        Invite invite = channel.asTextChannel().createInvite().setUnique(Boolean.TRUE).deadline(System.currentTimeMillis() + 600000).complete();
+
+        String template = this.htmlTemplate;
+        Map<String, String> map = Map.of(
+                // Dynamic Info
+                ":link-user:", avatarUrl,
+                ":link-name:", name,
+                ":link-discord-invite:", invite.getUrl(),
+                ":link-token:", token
+        );
+
+        for (Map.Entry<String, String> entry : map.entrySet()) {
+            template = template.replace(entry.getKey(), entry.getValue());
+        }
+
+        return emailService.enqueue(to, "Authentication Token", template);
     }
 
     public boolean isRateLimited(Long discordUserId) {
