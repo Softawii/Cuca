@@ -2,7 +2,6 @@ package dev.softawii.service;
 
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
-import com.github.benmanes.caffeine.cache.LoadingCache;
 import dev.softawii.entity.AuthenticationToken;
 import dev.softawii.entity.Student;
 import dev.softawii.exceptions.*;
@@ -11,6 +10,8 @@ import io.micronaut.context.annotation.Value;
 import jakarta.inject.Singleton;
 import jakarta.transaction.Transactional;
 import net.dv8tion.jda.api.entities.User;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.time.ZonedDateTime;
 import java.util.Optional;
@@ -22,14 +23,17 @@ import java.util.regex.Pattern;
 @Singleton
 public class AuthenticationTokenService {
 
-    private final StudentService                studentService;
-    private final AuthenticationTokenRepository authenticationTokenRepository;
-    private final Pattern                       ruralPattern;
-    private final Pattern                       gmailPattern;
-    private final String                        gmailRegex;
-    private final int                           tokenLength;
-    private final EmailService                  emailService;
-    private final Cache<Long, Long>             userTentativesCache;
+    private static final Logger                        LOGGER = LoggerFactory.getLogger(AuthenticationTokenService.class);
+    private final        StudentService                studentService;
+    private final        AuthenticationTokenRepository authenticationTokenRepository;
+    private final        Pattern                       ruralPattern;
+    private final        Pattern                       gmailPattern;
+    private final        String                        gmailRegex;
+    private final        int                           tokenLength;
+    private final        EmailService                  emailService;
+    private final        Cache<Long, Long>             tokenValidationTentativesCache; // userDiscordId -> count
+    private final        Cache<Long, Boolean>          tokenValidationBanCache; // userDiscordId -> unused
+    private final        int                           maxValidationTentatives;
 
     public AuthenticationTokenService(
             @Value("${email_domain:ufrrj.br}") String emailDomain,
@@ -44,10 +48,13 @@ public class AuthenticationTokenService {
         this.tokenLength = tokenLength;
         this.studentService = studentService;
         this.authenticationTokenRepository = authenticationTokenRepository;
-        this.userTentativesCache = Caffeine.newBuilder()
-                .expireAfterAccess(10, TimeUnit.MINUTES)
-                .expireAfter()
+        this.tokenValidationTentativesCache = Caffeine.newBuilder()
+                .expireAfterWrite(5, TimeUnit.MINUTES)
                 .build();
+        this.tokenValidationBanCache = Caffeine.newBuilder()
+                .expireAfterWrite(5, TimeUnit.MINUTES)
+                .build();
+        this.maxValidationTentatives = 3;
     }
 
     /**
@@ -94,7 +101,7 @@ public class AuthenticationTokenService {
         if (checkExistingEmail(email)) throw new EmailAlreadyInUseException("Email already in use");
         String token = generateRandomToken();
 
-        if(sendEmail(user, email, token)) {
+        if (sendEmail(user, email, token)) {
             saveToken(userDiscordId, email, token);
         } else {
             throw new FailedToSendEmailException("Failed to send email");
@@ -116,15 +123,28 @@ public class AuthenticationTokenService {
 
     @Transactional
     public void validateToken(Long userDiscordId, String token) throws TokenNotFoundException {
-
         Optional<AuthenticationToken> authTokenOptional = authenticationTokenRepository.findValidToken(token, userDiscordId);
 
-        if (authTokenOptional.isEmpty()) throw new TokenNotFoundException();
+        if (authTokenOptional.isEmpty()) {
+            computeValidationTentative(userDiscordId);
+            throw new TokenNotFoundException();
+        }
 
         AuthenticationToken authToken = authTokenOptional.get();
         authToken.setUsed(true);
         authenticationTokenRepository.saveAndFlush(authToken);
         studentService.createStudent(authToken.getDiscordUserId(), authToken.getEmail());
+    }
+
+    private void computeValidationTentative(Long userDiscordId) {
+        Long tentatives    = this.tokenValidationTentativesCache.get(userDiscordId, key -> 1L);
+        Long newTentatives = tentatives + 1;
+        this.tokenValidationTentativesCache.put(userDiscordId, newTentatives);
+        if (newTentatives >= maxValidationTentatives) {
+            this.tokenValidationBanCache.put(userDiscordId, Boolean.TRUE);
+            this.tokenValidationTentativesCache.invalidate(userDiscordId);
+            LOGGER.info(String.format("User '%d' is rate limited", userDiscordId));
+        }
     }
 
     private void saveToken(Long userDiscordId, String email, String token) {
@@ -137,7 +157,7 @@ public class AuthenticationTokenService {
         return this.studentService.findByEmail(email);
     }
 
-    private  Optional<Student> getStudentByDiscordId(Long discordUserId) {
+    private Optional<Student> getStudentByDiscordId(Long discordUserId) {
         return this.studentService.findByDiscordId(discordUserId);
     }
 
@@ -147,4 +167,7 @@ public class AuthenticationTokenService {
         return emailService.enqueue(to, "Authentication Token", token);
     }
 
+    public boolean isRateLimited(Long discordUserId) {
+        return this.tokenValidationBanCache.getIfPresent(discordUserId) != null;
+    }
 }

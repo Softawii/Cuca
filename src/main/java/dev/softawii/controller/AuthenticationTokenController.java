@@ -136,6 +136,11 @@ public class AuthenticationTokenController {
         event.deferReply(true).queue();
         long   discordUserId = event.getUser().getIdLong();
         String token         = Objects.requireNonNull(event.getValue("token")).getAsString();
+        if (authenticationTokenService.isRateLimited(discordUserId)) {
+            event.getHook().setEphemeral(true).sendMessage("Rate limited. Try again in a few minutes").queue();
+            return;
+        }
+
         try {
             authenticationTokenService.validateToken(discordUserId, token);
             event.getHook().setEphemeral(true).sendMessage("User verified").queue();
