@@ -90,8 +90,12 @@ public class AuthenticationTokenService {
         if (checkExistingEmail(email)) throw new EmailAlreadyInUseException("Email already in use");
 
         String token = generateRandomToken();
-        saveToken(userDiscordId, email, token);
-        sendEmail(email, token);
+
+        if(sendEmail(email, token)) {
+            saveToken(userDiscordId, email, token);
+        } else {
+            throw new FailedToSendEmailException("Failed to send email");
+        }
     }
 
     public boolean checkExistingDiscordId(Long userDiscordId) {
@@ -134,8 +138,8 @@ public class AuthenticationTokenService {
         return this.studentService.findByDiscordId(discordUserId);
     }
 
-    private void sendEmail(String to, String token) throws FailedToSendEmailException {
-        emailService.send(to, "Authentication Token", token);
+    private boolean sendEmail(String to, String token) throws FailedToSendEmailException {
+        return emailService.enqueue(to, "Authentication Token", token);
     }
 
 }

@@ -56,7 +56,7 @@ public class GmailService implements EmailProvider {
         setupSession();
         if (tentative > 2) {
             LOGGER.error("Failed to send email");
-            throw new FailedToSendEmailException();
+            throw new FailedToSendEmailException("Failed to send email");
         }
 
         Message msg = new MimeMessage(session);
