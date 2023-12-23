@@ -193,7 +193,8 @@ public class AuthenticationTokenService {
                 ":link-user:", avatarUrl,
                 ":link-name:", name,
                 ":link-discord-invite:", invite.getUrl(),
-                ":link-token:", token
+                ":link-token:", token,
+                ":link-date:", ZonedDateTime.now().toString()
         );
 
         for (Map.Entry<String, String> entry : map.entrySet()) {
