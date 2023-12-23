@@ -9,6 +9,7 @@ import dev.softawii.service.AuthenticationTokenService;
 import io.micronaut.context.annotation.Context;
 import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.Message;
+import net.dv8tion.jda.api.entities.User;
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
 import net.dv8tion.jda.api.events.interaction.ModalInteractionEvent;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
@@ -113,10 +114,11 @@ public class AuthenticationTokenController {
         event.deferReply(true).queue();
         long   discordUserId = event.getUser().getIdLong();
         String email         = Objects.requireNonNull(event.getValue("email")).getAsString();
+        User   user          = event.getUser();
 
         InteractionHook hook = event.getHook().setEphemeral(true);
         try {
-            authenticationTokenService.generateToken(discordUserId, email);
+            authenticationTokenService.generateToken(user, discordUserId, email);
             hook.sendMessage("Email sent to: " + email).queue();
         } catch (InvalidEmailException e) {
             hook.sendMessage("Invalid email").queue();

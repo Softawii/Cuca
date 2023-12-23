@@ -1,5 +1,6 @@
 package dev.softawii.service;
 
+import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.LoadingCache;
 import dev.softawii.entity.AuthenticationToken;
@@ -9,6 +10,7 @@ import dev.softawii.repository.AuthenticationTokenRepository;
 import io.micronaut.context.annotation.Value;
 import jakarta.inject.Singleton;
 import jakarta.transaction.Transactional;
+import net.dv8tion.jda.api.entities.User;
 
 import java.time.ZonedDateTime;
 import java.util.Optional;
@@ -27,9 +29,7 @@ public class AuthenticationTokenService {
     private final String                        gmailRegex;
     private final int                           tokenLength;
     private final EmailService                  emailService;
-//    LoadingCache<String, String> graphs = Caffeine.newBuilder()
-//            .expireAfterAccess(5, TimeUnit.MINUTES)
-//            .build();
+    private final Cache<Long, Long>             userTentativesCache;
 
     public AuthenticationTokenService(
             @Value("${email_domain:ufrrj.br}") String emailDomain,
@@ -44,6 +44,10 @@ public class AuthenticationTokenService {
         this.tokenLength = tokenLength;
         this.studentService = studentService;
         this.authenticationTokenRepository = authenticationTokenRepository;
+        this.userTentativesCache = Caffeine.newBuilder()
+                .expireAfterAccess(10, TimeUnit.MINUTES)
+                .expireAfter()
+                .build();
     }
 
     /**
@@ -83,15 +87,14 @@ public class AuthenticationTokenService {
      * 2. If the user is already verified
      * 3. If the user has a valid token (not used or expired)
      */
-    public void generateToken(Long userDiscordId, String email) throws InvalidEmailException, AlreadyVerifiedException, EmailAlreadyInUseException, RateLimitException, FailedToSendEmailException {
+    public void generateToken(User user, Long userDiscordId, String email) throws InvalidEmailException, AlreadyVerifiedException, EmailAlreadyInUseException, RateLimitException, FailedToSendEmailException {
         email = processEmail(email);
         if (!isValidEmail(email)) throw new InvalidEmailException("Invalid email");
         if (checkExistingDiscordId(userDiscordId)) throw new AlreadyVerifiedException("You are already verified");
         if (checkExistingEmail(email)) throw new EmailAlreadyInUseException("Email already in use");
-
         String token = generateRandomToken();
 
-        if(sendEmail(email, token)) {
+        if(sendEmail(user, email, token)) {
             saveToken(userDiscordId, email, token);
         } else {
             throw new FailedToSendEmailException("Failed to send email");
@@ -138,7 +141,9 @@ public class AuthenticationTokenService {
         return this.studentService.findByDiscordId(discordUserId);
     }
 
-    private boolean sendEmail(String to, String token) throws FailedToSendEmailException {
+    private boolean sendEmail(User user, String to, String token) throws FailedToSendEmailException {
+        String name = user.getGlobalName();
+        String avatarUrl = user.getEffectiveAvatarUrl();
         return emailService.enqueue(to, "Authentication Token", token);
     }
 
