@@ -7,6 +7,8 @@ import dev.softawii.entity.Student;
 import dev.softawii.exceptions.*;
 import dev.softawii.repository.AuthenticationTokenRepository;
 import io.micronaut.context.annotation.Value;
+import io.micronaut.core.io.ResourceResolver;
+import io.micronaut.core.io.scan.ClassPathResourceLoader;
 import jakarta.inject.Singleton;
 import jakarta.transaction.Transactional;
 import net.dv8tion.jda.api.entities.Invite;
@@ -16,9 +18,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Paths;
+import java.time.ZoneId;
 import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
@@ -45,7 +47,6 @@ public class AuthenticationTokenService {
     public AuthenticationTokenService(
             @Value("${email_domain:ufrrj.br}") String emailDomain,
             @Value("${token_length:6}") int tokenLength,
-            @Value("${html_template_path}") String htmlTemplatePath,
             StudentService studentService,
             AuthenticationTokenRepository authenticationTokenRepository,
             EmailService emailService
@@ -66,15 +67,17 @@ public class AuthenticationTokenService {
         this.maxValidationTentatives = 3;
 
         try {
-            this.htmlTemplate = loadHtmlTemplate(htmlTemplatePath);
+            this.htmlTemplate = loadHtmlTemplate();
         } catch (IOException e) {
             LOGGER.error("Failed to load email template", e);
             throw new RuntimeException(e);
         }
     }
 
-    private String loadHtmlTemplate(String path) throws IOException {
-        return Files.readString(Paths.get(path));
+    private String loadHtmlTemplate() throws IOException {
+        ClassPathResourceLoader loader = new ResourceResolver().getLoader(ClassPathResourceLoader.class).get();
+
+        return new String(loader.getResourceAsStream("views/send-token.html").get().readAllBytes());
     }
 
     /**
@@ -188,13 +191,16 @@ public class AuthenticationTokenService {
         Invite invite = channel.asTextChannel().createInvite().setUnique(Boolean.TRUE).deadline(System.currentTimeMillis() + 600000).complete();
 
         String template = this.htmlTemplate;
+
+        ZonedDateTime     now       = ZonedDateTime.now(ZoneId.of("GMT-3"));
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss Z");
         Map<String, String> map = Map.of(
                 // Dynamic Info
-                ":link-user:", avatarUrl,
+                ":link-user-avatar:", avatarUrl,
                 ":link-name:", name,
                 ":link-discord-invite:", invite.getUrl(),
                 ":link-token:", token,
-                ":link-date:", ZonedDateTime.now().toString()
+                ":link-date:", now.format(formatter)
         );
 
         for (Map.Entry<String, String> entry : map.entrySet()) {
