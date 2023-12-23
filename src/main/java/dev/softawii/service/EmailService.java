@@ -2,6 +2,7 @@ package dev.softawii.service;
 
 import dev.softawii.exceptions.FailedToSendEmailException;
 import dev.softawii.service.mail.EmailProvider;
+import jakarta.inject.Named;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -16,7 +17,7 @@ public class EmailService extends Thread {
     private final EmailProvider emailProvider;
     private final BlockingQueue<EmailInfo> emailQueue;
 
-    public EmailService(EmailProvider emailProvider) {
+    public EmailService(@Named("gmail") EmailProvider emailProvider) {
         this.emailProvider = emailProvider;
         this.emailQueue = new LinkedBlockingQueue<>();
         this.setName("EmailThread-1");

@@ -23,10 +23,6 @@ public class StudentService {
         return repository.findByDiscordUserId(discordId);
     }
 
-    public Student getOrCreate(Long discordId, String email) {
-        return repository.findByDiscordUserId(discordId).orElseGet(() -> createStudent(discordId, email));
-    }
-
     public Student createStudent(Long discordId, String email) {
         Student student = new Student(discordId, email);
         return repository.saveAndFlush(student);

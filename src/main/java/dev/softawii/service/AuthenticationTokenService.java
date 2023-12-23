@@ -3,7 +3,6 @@ package dev.softawii.service;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import dev.softawii.entity.AuthenticationToken;
-import dev.softawii.entity.Student;
 import dev.softawii.exceptions.*;
 import dev.softawii.repository.AuthenticationTokenRepository;
 import dev.softawii.util.EmailUtil;
@@ -92,11 +91,11 @@ public class AuthenticationTokenService {
     }
 
     public boolean checkExistingDiscordId(Long userDiscordId) {
-        return getStudentByDiscordId(userDiscordId).isPresent();
+        return this.studentService.findByDiscordId(userDiscordId).isPresent();
     }
 
     public boolean checkExistingEmail(String email) {
-        return getStudentByEmail(email).isPresent();
+        return this.studentService.findByEmail(email).isPresent();
     }
 
     public boolean checkTokenAlreadyGenerated(Long discordId) {
@@ -134,14 +133,6 @@ public class AuthenticationTokenService {
         ZonedDateTime createdAt = ZonedDateTime.now();
         ZonedDateTime expiresAt = createdAt.plusMinutes(5);
         this.authenticationTokenRepository.saveAndFlush(new AuthenticationToken(userDiscordId, email, token, createdAt, expiresAt));
-    }
-
-    private Optional<Student> getStudentByEmail(String email) {
-        return this.studentService.findByEmail(email);
-    }
-
-    private Optional<Student> getStudentByDiscordId(Long discordUserId) {
-        return this.studentService.findByDiscordId(discordUserId);
     }
 
     private boolean sendEmail(User user, GuildMessageChannelUnion channel, String to, String token) throws FailedToSendEmailException {
