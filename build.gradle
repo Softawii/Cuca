@@ -30,7 +30,6 @@ dependencies {
     runtimeOnly("org.eclipse.angus:angus-mail")
     runtimeOnly("org.yaml:snakeyaml")
     testImplementation("io.micronaut:micronaut-http-client")
-
 }
 
 

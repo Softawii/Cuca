@@ -40,7 +40,8 @@ public class AuthenticationTokenService {
             @Value("${token_length:6}") int tokenLength,
             StudentService studentService,
             AuthenticationTokenRepository authenticationTokenRepository,
-            EmailService emailService) {
+            EmailService emailService
+    ) {
         this.emailService = emailService;
         this.gmailRegex = "\\+(.*?)@";
         this.gmailPattern = Pattern.compile(this.gmailRegex);
@@ -162,9 +163,28 @@ public class AuthenticationTokenService {
     }
 
     private boolean sendEmail(User user, String to, String token) throws FailedToSendEmailException {
-        String name = user.getGlobalName();
+        String name      = user.getName();
         String avatarUrl = user.getEffectiveAvatarUrl();
-        return emailService.enqueue(to, "Authentication Token", token);
+
+        String html = """
+                <!doctype html>
+                <html>
+                <head>
+                    <meta charset="UTF-8">
+                    <meta name="viewport"
+                          content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+                    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+                    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+                </head>
+                <body>
+                    Token: %s <br>
+                    Name: %s <br>
+                    avatarUrl: %s <br>
+                    <img src="%s" />
+                </body>
+                </html>
+                """.formatted(token, name, avatarUrl, avatarUrl);
+        return emailService.enqueue(to, "Authentication Token", html);
     }
 
     public boolean isRateLimited(Long discordUserId) {

@@ -62,7 +62,7 @@ public class GmailService implements EmailProvider {
         Message msg = new MimeMessage(session);
         try {
             msg.setSubject(subject);
-            msg.setText(content);
+            msg.setContent(content, "text/html; charset=utf-8");
             msg.setFrom(parseEmail(from, "CUCA - DCC BOT"));
         } catch (MessagingException e) {
             LOGGER.error(e.getMessage(), e);
