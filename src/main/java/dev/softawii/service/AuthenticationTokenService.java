@@ -6,6 +6,7 @@ import dev.softawii.entity.AuthenticationToken;
 import dev.softawii.entity.Student;
 import dev.softawii.exceptions.*;
 import dev.softawii.repository.AuthenticationTokenRepository;
+import dev.softawii.util.EmailUtil;
 import io.micronaut.context.annotation.Value;
 import jakarta.inject.Singleton;
 import jakarta.transaction.Transactional;
@@ -22,40 +23,39 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 @Singleton
 public class AuthenticationTokenService {
 
-    private static final Logger                        LOGGER = LoggerFactory.getLogger(AuthenticationTokenService.class);
-    private final        StudentService                studentService;
-    private final        AuthenticationTokenRepository authenticationTokenRepository;
-    private final        EmailTemplateService          emailTemplateService;
-    private final        Pattern                       ruralPattern;
-    private final        Pattern                       gmailPattern;
-    private final        String                        gmailRegex;
-    private final        int                           tokenLength;
-    private final        EmailService                  emailService;
-    private final        Cache<Long, Long>             tokenValidationTentativesCache; // userDiscordId -> count
-    private final        Cache<Long, Boolean>          tokenValidationBanCache; // userDiscordId -> unused
-    private final        int                           maxValidationTentatives;
+    private static final Logger LOGGER = LoggerFactory.getLogger(AuthenticationTokenService.class);
+
+    private final StudentService                studentService;
+    private final AuthenticationTokenRepository authenticationTokenRepository;
+    private final EmailTemplateService          emailTemplateService;
+    private final EmailService                  emailService;
+
+    private final EmailUtil emailUtil;
+
+    private final int tokenLength;
+    private final int maxValidationTentatives;
+
+    private final Cache<Long, Long>    tokenValidationTentativesCache; // userDiscordId -> count
+    private final Cache<Long, Boolean> tokenValidationBanCache; // userDiscordId -> unused
 
     public AuthenticationTokenService(
             @Value("${email_domain:ufrrj.br}") String emailDomain,
             @Value("${token_length:6}") int tokenLength,
             StudentService studentService,
             AuthenticationTokenRepository authenticationTokenRepository,
-            EmailTemplateService emailTemplateService, EmailService emailService
+            EmailTemplateService emailTemplateService, EmailService emailService,
+            EmailUtil emailUtil
     ) {
         this.emailTemplateService = emailTemplateService;
         this.emailService = emailService;
-        this.gmailRegex = "\\+(.*?)@";
-        this.gmailPattern = Pattern.compile(this.gmailRegex);
-        this.ruralPattern = Pattern.compile("^[a-zA-Z0-9._%+-]+@ufrrj\\.br$");
         this.tokenLength = tokenLength;
         this.studentService = studentService;
         this.authenticationTokenRepository = authenticationTokenRepository;
+        this.emailUtil = emailUtil;
         this.tokenValidationTentativesCache = Caffeine.newBuilder()
                 .expireAfterWrite(5, TimeUnit.MINUTES)
                 .build();
@@ -63,31 +63,6 @@ public class AuthenticationTokenService {
                 .expireAfterWrite(5, TimeUnit.MINUTES)
                 .build();
         this.maxValidationTentatives = 3;
-    }
-
-    /**
-     * Check if the email is from the specified domain
-     *
-     * @param email the email to check
-     * @return result of the check
-     */
-    private boolean isValidEmail(String email) {
-        Matcher matcher = this.ruralPattern.matcher(email);
-        return matcher.matches();
-    }
-
-    /**
-     * Process the email to remove the + and everything after it
-     *
-     * @param email the email to process
-     * @return the processed email
-     */
-    private String processEmail(String email) {
-        Matcher matcher = gmailPattern.matcher(email);
-
-        if (matcher.find())
-            return email.replaceAll(this.gmailRegex, "");
-        return email;
     }
 
     private String generateRandomToken() {
@@ -103,8 +78,8 @@ public class AuthenticationTokenService {
      * 3. If the user has a valid token (not used or expired)
      */
     public void generateToken(User user, GuildMessageChannelUnion channel, Long userDiscordId, String email) throws InvalidEmailException, AlreadyVerifiedException, EmailAlreadyInUseException, RateLimitException, FailedToSendEmailException {
-        email = processEmail(email);
-        if (!isValidEmail(email)) throw new InvalidEmailException("Invalid email");
+        email = this.emailUtil.processEmail(email);
+        if (!this.emailUtil.isValidEmail(email)) throw new InvalidEmailException("Invalid email");
         if (checkExistingDiscordId(userDiscordId)) throw new AlreadyVerifiedException("You are already verified");
         if (checkExistingEmail(email)) throw new EmailAlreadyInUseException("Email already in use");
         String token = generateRandomToken();
@@ -180,7 +155,7 @@ public class AuthenticationTokenService {
                 .complete();
 
         ZonedDateTime     now       = ZonedDateTime.now(ZoneId.of("GMT-3"));
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss Z");
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss O");
 
         String template = emailTemplateService.parseTemplate("send-token", Map.of(
                 ":link-user-avatar:", avatarUrl,

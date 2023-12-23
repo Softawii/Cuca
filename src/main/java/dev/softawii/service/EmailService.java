@@ -3,7 +3,6 @@ package dev.softawii.service;
 import dev.softawii.exceptions.FailedToSendEmailException;
 import dev.softawii.service.mail.EmailProvider;
 import jakarta.inject.Singleton;
-import net.dv8tion.jda.api.entities.User;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -13,6 +12,7 @@ import java.util.concurrent.LinkedBlockingQueue;
 @Singleton
 public class EmailService extends Thread {
     private static final Logger LOGGER = LoggerFactory.getLogger(EmailService.class);
+
     private final EmailProvider emailProvider;
     private final BlockingQueue<EmailInfo> emailQueue;
 
@@ -46,5 +46,5 @@ public class EmailService extends Thread {
         return emailQueue.add(new EmailInfo(to, content, subject));
     }
 
-    private record EmailInfo(String to, String content, String subject){}
+    private record EmailInfo(String to, String content, String subject) {}
 }
