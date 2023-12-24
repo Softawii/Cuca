@@ -13,4 +13,5 @@ public interface StudentRepository extends JpaRepository<Student, Long> {
     boolean existsByDiscordUserId(Long discordUserId);
     Optional<Student> findByDiscordUserId(Long discordUserId);
     Optional<Student> findByEmail(String email);
+    void deleteByDiscordUserId(Long discordId);
 }
