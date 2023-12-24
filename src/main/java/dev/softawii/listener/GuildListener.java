@@ -75,4 +75,6 @@ public class GuildListener extends ListenerAdapter {
         User user = event.getUser();
         studentService.removeStudent(user.getIdLong(), user);
     }
+
+
 }

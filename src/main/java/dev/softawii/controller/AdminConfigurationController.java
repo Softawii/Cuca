@@ -153,7 +153,7 @@ public class AdminConfigurationController {
         Member member = getMemberFromOptional(event.getOption("member"), "member");
         String email = getStringFromOptional(event.getOption("email"), "email");
 
-        if((member == null) ^ (email == null)) {
+        if((member == null) && (email == null)) {
             event.reply("You must provide a member or an email, not both").setEphemeral(true).queue();
             return;
         }
@@ -174,8 +174,16 @@ public class AdminConfigurationController {
         }
 
         Student student = studentOptional.get();
-        MessageEmbed embed = studentService.getStudentInfo(event.getUser(), student);
-        event.replyEmbeds(embed).setEphemeral(true).queue();
+        if(member == null) {
+            member = event.getGuild().getMemberById(student.getDiscordUserId());
+        }
+
+        if(member.getUser() != null) {
+            MessageEmbed embed = studentService.getStudentInfo(member.getUser(), student);
+            event.replyEmbeds(embed).setEphemeral(true).queue();
+        } else {
+            event.reply("No user found").setEphemeral(true).queue();
+        }
     }
 
     @ICommand(name = "list", description = "List all students", permissions = {Permission.ADMINISTRATOR})
