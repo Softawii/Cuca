@@ -1,6 +1,7 @@
 package dev.softawii.controller;
 
 import com.softawii.curupira.annotations.IArgument;
+import com.softawii.curupira.annotations.IButton;
 import com.softawii.curupira.annotations.ICommand;
 import com.softawii.curupira.annotations.IGroup;
 import dev.softawii.entity.Student;
@@ -10,12 +11,14 @@ import dev.softawii.service.StudentService;
 import dev.softawii.util.EmailUtil;
 import dev.softawii.util.EmbedUtil;
 import io.micronaut.context.annotation.Context;
+import io.micronaut.data.model.Page;
 import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.*;
 import net.dv8tion.jda.api.entities.channel.ChannelType;
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
 import net.dv8tion.jda.api.entities.channel.unions.GuildChannelUnion;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
+import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent;
 import net.dv8tion.jda.api.interactions.commands.OptionMapping;
 import net.dv8tion.jda.api.interactions.commands.OptionType;
 import org.slf4j.Logger;
@@ -28,6 +31,7 @@ import java.util.Optional;
 public class AdminConfigurationController {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(AdminConfigurationController.class);
+    private static final int PAGE_SIZE = 5;
 
     private static DynamicConfigService config;
     private static StudentService studentService;
@@ -79,6 +83,12 @@ public class AdminConfigurationController {
         if (mapping == null) return null;
         if (mapping.getType() != OptionType.STRING) throw new IllegalArgumentException(name + " must be a string");
         return mapping.getAsString();
+    }
+
+    private static int getIntegerFromOptional(OptionMapping mapping, String name) {
+        if (mapping == null) return 0;
+        if (mapping.getType() != OptionType.INTEGER) throw new IllegalArgumentException(name + " must be a integer");
+        return mapping.getAsInt();
     }
 
 
@@ -166,5 +176,26 @@ public class AdminConfigurationController {
         Student student = studentOptional.get();
         MessageEmbed embed = studentService.getStudentInfo(event.getUser(), student);
         event.replyEmbeds(embed).setEphemeral(true).queue();
+    }
+
+    @ICommand(name = "list", description = "List all students", permissions = {Permission.ADMINISTRATOR})
+    @IArgument(name = "page", description = "The page to list", required = false, type = OptionType.INTEGER)
+    public static void list(SlashCommandInteractionEvent event) {
+        int pageNumber = getIntegerFromOptional(event.getOption("page"), "page");
+        Page<Student> page = studentService.findAll(pageNumber, PAGE_SIZE);
+        event.replyEmbeds(studentService.getStudentListEmbed(page))
+                .addActionRow(studentService.getActionRow(page))
+                .setEphemeral(true)
+                .queue();
+
+    }
+
+    @IButton(id="list-page")
+    public static void listButton(ButtonInteractionEvent event) {
+        int pageNumber = Integer.parseInt(event.getComponentId().split(":")[1]);
+        Page<Student> page = studentService.findAll(pageNumber, PAGE_SIZE);
+        event.editMessageEmbeds(studentService.getStudentListEmbed(page))
+                .setActionRow(studentService.getActionRow(page))
+                .queue();
     }
 }
