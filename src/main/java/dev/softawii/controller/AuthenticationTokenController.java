@@ -144,7 +144,7 @@ public class AuthenticationTokenController {
         }
 
         try {
-            authenticationTokenService.validateToken(event.getUser(), discordUserId, token);
+            authenticationTokenService.validateToken(event.getMember(), discordUserId, token);
             event.getHook().setEphemeral(true).sendMessage("User verified").queue();
         } catch (TokenNotFoundException e) {
             event.getHook().setEphemeral(true).sendMessage("Invalid token").queue();

@@ -11,6 +11,7 @@ import io.micronaut.context.annotation.Value;
 import jakarta.inject.Singleton;
 import jakarta.transaction.Transactional;
 import net.dv8tion.jda.api.entities.Invite;
+import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.User;
 import net.dv8tion.jda.api.entities.channel.unions.GuildMessageChannelUnion;
 import org.slf4j.Logger;
@@ -39,6 +40,7 @@ public class AuthenticationTokenService {
     private final EmailTemplateService          emailTemplateService;
     private final EmailService                  emailService;
     private final EventService                  eventService;
+    private final DynamicConfigService config;
 
     private final EmailUtil emailUtil;
     private final EmbedUtil embedUtil;
@@ -55,7 +57,7 @@ public class AuthenticationTokenService {
             StudentService studentService,
             AuthenticationTokenRepository authenticationTokenRepository,
             EmailTemplateService emailTemplateService, EmailService emailService,
-            EventService eventService, EmailUtil emailUtil, EmbedUtil embedUtil
+            EventService eventService, EmailUtil emailUtil, EmbedUtil embedUtil, DynamicConfigService config
     ) {
         this.emailTemplateService = emailTemplateService;
         this.emailService = emailService;
@@ -65,6 +67,7 @@ public class AuthenticationTokenService {
         this.eventService = eventService;
         this.emailUtil = emailUtil;
         this.embedUtil = embedUtil;
+        this.config = config;
         this.tokenValidationTentativesCache = Caffeine.newBuilder()
                 .expireAfterWrite(5, TimeUnit.MINUTES)
                 .build();
@@ -120,11 +123,11 @@ public class AuthenticationTokenService {
     }
 
     @Transactional
-    public void validateToken(User user, Long userDiscordId, String token) throws TokenNotFoundException {
+    public void validateToken(Member member, Long userDiscordId, String token) throws TokenNotFoundException {
         Optional<AuthenticationToken> authTokenOptional = authenticationTokenRepository.findValidToken(token, userDiscordId);
 
         if (authTokenOptional.isEmpty()) {
-            computeValidationTentative(user, userDiscordId);
+            computeValidationTentative(member.getUser(), userDiscordId);
             throw new TokenNotFoundException();
         }
 
@@ -132,11 +135,13 @@ public class AuthenticationTokenService {
         authToken.setUsed(true);
         authenticationTokenRepository.saveAndFlush(authToken);
         studentService.createStudent(authToken.getDiscordUserId(), authToken.getEmail());
-        this.eventService.dispatch(this.embedUtil.generate(EmbedUtil.EmbedLevel.SUCCESS, "User Authenticated", "User <@!%s> authenticated".formatted(userDiscordId), user));
+        if (this.config.getJoinServerRole() != null) member.getGuild().removeRoleFromMember(member, this.config.getJoinServerRole()).queue();
+        if (this.config.getVerifiedRole() != null) member.getGuild().addRoleToMember(member, this.config.getVerifiedRole()).queue();
+        this.eventService.dispatch(this.embedUtil.generate(EmbedUtil.EmbedLevel.SUCCESS, "User Authenticated", "User <@!%s> authenticated".formatted(userDiscordId), member.getUser()));
     }
 
     private void computeValidationTentative(User user, Long userDiscordId) {
-        Long tentatives    = this.tokenValidationTentativesCache.get(userDiscordId, key -> 1L);
+        Long tentatives    = this.tokenValidationTentativesCache.get(userDiscordId, key -> 0L);
         Long newTentatives = tentatives + 1;
         this.tokenValidationTentativesCache.put(userDiscordId, newTentatives);
         if (newTentatives >= maxValidationTentatives) {
@@ -144,7 +149,6 @@ public class AuthenticationTokenService {
             this.tokenValidationTentativesCache.invalidate(userDiscordId);
             LOGGER.info(String.format("User '%d' is rate limited", userDiscordId));
             this.eventService.dispatch(this.embedUtil.generate(EmbedUtil.EmbedLevel.WARNING, "Rate Limit", "User <@!%s> is rate limited".formatted(userDiscordId), user));
-
         }
     }
 

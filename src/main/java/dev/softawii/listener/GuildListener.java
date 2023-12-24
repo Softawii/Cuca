@@ -1,40 +1,53 @@
 package dev.softawii.listener;
 
+import dev.softawii.service.DynamicConfigService;
 import dev.softawii.service.StudentService;
-import io.micronaut.validation.validator.constraints.EmailValidator;
-import jakarta.inject.Singleton;
+import io.micronaut.context.annotation.Context;
 import net.dv8tion.jda.api.JDA;
+import net.dv8tion.jda.api.entities.Member;
+import net.dv8tion.jda.api.entities.Role;
 import net.dv8tion.jda.api.entities.User;
 import net.dv8tion.jda.api.events.guild.member.GuildMemberJoinEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-@Singleton
+@Context
 public class GuildListener extends ListenerAdapter {
-    private final StudentService studentService;
-    private final EmailValidator emailValidator = new EmailValidator();
 
-    public GuildListener(JDA jda, StudentService studentService) {
+    private static final Logger LOGGER = LoggerFactory.getLogger(GuildListener.class);
+    private final StudentService studentService;
+    private final DynamicConfigService configService;
+
+    public GuildListener(JDA jda, StudentService studentService, DynamicConfigService configService) {
         this.studentService = studentService;
+        this.configService = configService;
         jda.addEventListener(this);
+        LOGGER.info("GuildListener registered");
     }
 
     @Override
     public void onGuildMemberJoin(GuildMemberJoinEvent event) {
-        User user      = event.getUser();
-        Long discordId = user.getIdLong();
-        if (studentService.alreadySetup(discordId)) {
-            // give role
-        } else {
-            // send private message
-            if (!user.hasPrivateChannel()) {
-                // log
-                return;
-            }
+        Member member = event.getMember();
+        Role joinServerRole = configService.getJoinServerRole();
+        Role verifiedRole = configService.getVerifiedRole();
 
-            user.openPrivateChannel()
-                    .queue(channel -> {
-                        channel.sendMessage("Você acabou de entrar servidor do DCC e não possui cadastro.").queue();
-                    });
+        if(joinServerRole == null || verifiedRole == null) {
+            LOGGER.error("Server roles not set up");
+            return;
+        }
+
+        if(member.getGuild() != joinServerRole.getGuild()) {
+            LOGGER.error("Member joined a guild that is not the same as the join server role guild. Member: " + member + " Guild Id: " + member.getGuild().getId());
+            return;
+        }
+
+        if (studentService.alreadySetup(member.getIdLong())) {
+            LOGGER.info("Member already setup: " + member.getAsMention());
+            event.getGuild().addRoleToMember(member, verifiedRole).queue();
+        } else {
+            LOGGER.info("Member joined: " + member.getAsMention());
+            event.getGuild().addRoleToMember(member, joinServerRole).queue();
         }
     }
 }
