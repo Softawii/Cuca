@@ -16,12 +16,17 @@ import net.dv8tion.jda.api.entities.channel.unions.GuildMessageChannelUnion;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.security.NoSuchAlgorithmException;
+import java.security.SecureRandom;
+import java.security.Security;
+import java.time.Instant;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 
 @Singleton
@@ -70,8 +75,14 @@ public class AuthenticationTokenService {
     }
 
     private String generateRandomToken() {
-        String token = UUID.randomUUID().toString().replaceAll("-", "");
-        return token.substring(0, Math.min(this.tokenLength, token.length()));
+        try {
+            SecureRandom random = SecureRandom.getInstanceStrong();
+            long token = random.nextLong((long) Math.pow(10, tokenLength - 1), (long) Math.pow(10, tokenLength) - 1);
+            return Long.toUnsignedString(token);
+        } catch (NoSuchAlgorithmException e) {
+            LOGGER.error("Failed to generate random token", e);
+            throw new RuntimeException(e);
+        }
     }
 
     /**
@@ -150,7 +161,7 @@ public class AuthenticationTokenService {
         Invite invite = channel.asTextChannel()
                 .createInvite()
                 .setUnique(Boolean.TRUE)
-                .deadline(System.currentTimeMillis() + 600000)
+                .deadline(System.currentTimeMillis() + TimeUnit.MINUTES.toMillis(60))
                 .complete();
 
         ZonedDateTime     now       = ZonedDateTime.now(ZoneId.of("GMT-3"));
@@ -164,7 +175,7 @@ public class AuthenticationTokenService {
                 ":link-date:", now.format(formatter)
         ));
 
-        return emailService.enqueue(to, "Authentication Token", template);
+        return emailService.enqueue(to, "Token de Autenticação - DCC Discord Server", template);
     }
 
     public boolean isRateLimited(Long discordUserId) {

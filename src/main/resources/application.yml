@@ -4,8 +4,8 @@ micronaut:
 datasources:
   default:
     url: jdbc:postgresql://localhost:5432/cuca
-    username: sa
-    password: sa
+    username: postgres
+    password: 123
     driver-class-name: org.postgresql.Driver
     maximum-pool-size: 10
 jpa.default:
