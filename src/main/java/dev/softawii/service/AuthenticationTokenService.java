@@ -6,6 +6,7 @@ import dev.softawii.entity.AuthenticationToken;
 import dev.softawii.exceptions.*;
 import dev.softawii.repository.AuthenticationTokenRepository;
 import dev.softawii.util.EmailUtil;
+import dev.softawii.util.EmbedUtil;
 import io.micronaut.context.annotation.Value;
 import jakarta.inject.Singleton;
 import jakarta.transaction.Transactional;
@@ -35,6 +36,7 @@ public class AuthenticationTokenService {
     private final EventService                  eventService;
 
     private final EmailUtil emailUtil;
+    private final EmbedUtil embedUtil;
 
     private final int tokenLength;
     private final int maxValidationTentatives;
@@ -48,7 +50,7 @@ public class AuthenticationTokenService {
             StudentService studentService,
             AuthenticationTokenRepository authenticationTokenRepository,
             EmailTemplateService emailTemplateService, EmailService emailService,
-            EventService eventService, EmailUtil emailUtil
+            EventService eventService, EmailUtil emailUtil, EmbedUtil embedUtil
     ) {
         this.emailTemplateService = emailTemplateService;
         this.emailService = emailService;
@@ -57,6 +59,7 @@ public class AuthenticationTokenService {
         this.authenticationTokenRepository = authenticationTokenRepository;
         this.eventService = eventService;
         this.emailUtil = emailUtil;
+        this.embedUtil = embedUtil;
         this.tokenValidationTentativesCache = Caffeine.newBuilder()
                 .expireAfterWrite(5, TimeUnit.MINUTES)
                 .build();
@@ -106,11 +109,11 @@ public class AuthenticationTokenService {
     }
 
     @Transactional
-    public void validateToken(Long userDiscordId, String token) throws TokenNotFoundException {
+    public void validateToken(User user, Long userDiscordId, String token) throws TokenNotFoundException {
         Optional<AuthenticationToken> authTokenOptional = authenticationTokenRepository.findValidToken(token, userDiscordId);
 
         if (authTokenOptional.isEmpty()) {
-            computeValidationTentative(userDiscordId);
+            computeValidationTentative(user, userDiscordId);
             throw new TokenNotFoundException();
         }
 
@@ -118,10 +121,10 @@ public class AuthenticationTokenService {
         authToken.setUsed(true);
         authenticationTokenRepository.saveAndFlush(authToken);
         studentService.createStudent(authToken.getDiscordUserId(), authToken.getEmail());
-        this.eventService.dispatch(String.format("User <@!%s> is validated", userDiscordId));
+        this.eventService.dispatch(this.embedUtil.generate(EmbedUtil.EmbedLevel.SUCCESS, "User Authenticated", "User <@!%s> authenticated".formatted(userDiscordId), user));
     }
 
-    private void computeValidationTentative(Long userDiscordId) {
+    private void computeValidationTentative(User user, Long userDiscordId) {
         Long tentatives    = this.tokenValidationTentativesCache.get(userDiscordId, key -> 1L);
         Long newTentatives = tentatives + 1;
         this.tokenValidationTentativesCache.put(userDiscordId, newTentatives);
@@ -129,7 +132,8 @@ public class AuthenticationTokenService {
             this.tokenValidationBanCache.put(userDiscordId, Boolean.TRUE);
             this.tokenValidationTentativesCache.invalidate(userDiscordId);
             LOGGER.info(String.format("User '%d' is rate limited", userDiscordId));
-            this.eventService.dispatch(String.format("User <@!%s> is rate limited", userDiscordId));
+            this.eventService.dispatch(this.embedUtil.generate(EmbedUtil.EmbedLevel.WARNING, "Rate Limit", "User <@!%s> is rate limited".formatted(userDiscordId), user));
+
         }
     }
 

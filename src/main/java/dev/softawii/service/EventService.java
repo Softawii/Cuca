@@ -4,6 +4,7 @@ import io.micronaut.context.annotation.Value;
 import io.micronaut.core.annotation.Nullable;
 import jakarta.inject.Singleton;
 import net.dv8tion.jda.api.JDA;
+import net.dv8tion.jda.api.entities.MessageEmbed;
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -12,30 +13,29 @@ import org.slf4j.LoggerFactory;
 public class EventService {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(EventService.class);
-
     private final JDA    jda;
-    private final String eventChannelId;
+    private final DynamicConfigService config;
 
     public EventService(
             JDA jda,
-            @Value("${app.discord.event_channel}") @Nullable String eventChannelId
+            DynamicConfigService config
     ) {
         this.jda = jda;
-        this.eventChannelId = eventChannelId;
+        this.config = config;
     }
 
-    public void dispatch(String message) {
-        if (this.eventChannelId == null) {
-            LOGGER.error("EventService is not properly set up. Message not dispatched: " + message);
+    public void dispatch(MessageEmbed embed) {
+        if (this.config.getEventChannel() == null) {
+            LOGGER.error("EventService is not properly set up. Message not dispatched: " + embed.toData());
             return;
         }
 
-        TextChannel channel = jda.getTextChannelById(this.eventChannelId);
+        TextChannel channel = this.config.getEventChannel();
         if (channel == null) {
-            LOGGER.error("Failed to dispatch event message: " + message);
+            LOGGER.error("Failed to dispatch event message: " + embed.toData());
             return;
         }
-        LOGGER.error("Queued event message: " + message);
-        channel.sendMessage(message).queue();
+        LOGGER.info("Queued event message: " + embed.toData());
+        channel.sendMessageEmbeds(embed).queue();
     }
 }
