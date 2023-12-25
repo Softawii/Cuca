@@ -9,5 +9,5 @@ datasources:
     driver-class-name: org.postgresql.Driver
     maximum-pool-size: 10
 jpa.default:
-  properties.hibernate.hbm2ddl.auto: update
+  properties.hibernate.hbm2ddl.auto: create-drop
   entity-scan.packages: 'dev.softawii.entity'

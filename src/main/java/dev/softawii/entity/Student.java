@@ -2,6 +2,8 @@ package dev.softawii.entity;
 
 import jakarta.persistence.*;
 
+import java.time.ZonedDateTime;
+
 @Entity
 public class Student {
     @Id
@@ -14,12 +16,17 @@ public class Student {
     @Column(nullable = false, unique = true)
     private String email;
 
+    private ZonedDateTime createdAt;
+    private ZonedDateTime updatedAt;
+
     public Student() {
     }
 
     public Student(Long discordUserId, String email) {
         this.discordUserId = discordUserId;
         this.email = email;
+        this.createdAt = ZonedDateTime.now();
+        this.updatedAt = this.createdAt;
     }
 
     public Long getId() {
@@ -46,12 +53,30 @@ public class Student {
         this.email = email;
     }
 
+    public ZonedDateTime getCreatedAt() {
+        return createdAt;
+    }
+
+    public void setCreatedAt(ZonedDateTime createdAt) {
+        this.createdAt = createdAt;
+    }
+
+    public ZonedDateTime getUpdatedAt() {
+        return updatedAt;
+    }
+
+    public void setUpdatedAt(ZonedDateTime updatedAt) {
+        this.updatedAt = updatedAt;
+    }
+
     @Override
     public String toString() {
         return "Student{" +
-               "id=" + id +
-               ", discordUserId=" + discordUserId +
-               ", email='" + email + '\'' +
-               '}';
+                "id=" + id +
+                ", discordUserId=" + discordUserId +
+                ", email='" + email + '\'' +
+                ", createdAt=" + createdAt +
+                ", updatedAt=" + updatedAt +
+                '}';
     }
 }

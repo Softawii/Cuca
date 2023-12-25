@@ -178,7 +178,7 @@ public class AdminConfigurationController {
             member = event.getGuild().getMemberById(student.getDiscordUserId());
         }
 
-        if(member.getUser() != null) {
+        if(member != null) {
             MessageEmbed embed = studentService.getStudentInfo(member.getUser(), student);
             event.replyEmbeds(embed).setEphemeral(true).queue();
         } else {

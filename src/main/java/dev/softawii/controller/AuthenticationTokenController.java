@@ -6,9 +6,11 @@ import com.softawii.curupira.annotations.IGroup;
 import com.softawii.curupira.annotations.IModal;
 import dev.softawii.exceptions.*;
 import dev.softawii.service.AuthenticationTokenService;
+import dev.softawii.util.EmbedUtil;
 import io.micronaut.context.annotation.Context;
 import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.Message;
+import net.dv8tion.jda.api.entities.MessageEmbed;
 import net.dv8tion.jda.api.entities.User;
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
 import net.dv8tion.jda.api.entities.channel.unions.GuildMessageChannelUnion;
@@ -37,8 +39,10 @@ public class AuthenticationTokenController {
     private static final String                     REGISTRATION_MODAL          = "token.registration-modal";
     private static final String                     AUTHENTICATION_MODAL        = "token.authentication-modal";
     private static       AuthenticationTokenService authenticationTokenService;
+    private static       EmbedUtil                  embedUtil;
 
-    public AuthenticationTokenController(AuthenticationTokenService authenticationTokenService) {
+    public AuthenticationTokenController(AuthenticationTokenService authenticationTokenService, EmbedUtil embedUtil) {
+        AuthenticationTokenController.embedUtil                  =  embedUtil;
         AuthenticationTokenController.authenticationTokenService = authenticationTokenService;
     }
 
@@ -46,9 +50,19 @@ public class AuthenticationTokenController {
               permissions = {Permission.ADMINISTRATOR})
     public static void setup(SlashCommandInteractionEvent event) {
         TextChannel channel = event.getChannel().asTextChannel();
-        Message message = channel.sendMessage("Click the button below to generate a token.")
-                .addActionRow(Button.primary(TOKEN_REGISTRATION_BUTTON, "Register"), Button.secondary(TOKEN_AUTHENTICATION_BUTTON, "Authenticate"))
-                .complete();
+        MessageEmbed embed = embedUtil.generate(
+                EmbedUtil.EmbedLevel.INFO,
+                "Autentica\u00E7\u00E3o no servidor",
+                "Para maior seguran\u00E7a, \u00E9 necess\u00E1rio que voc\u00EA se autentique no servidor para ter acesso aos canais de texto e voz",
+                "Qualquer d\u00FAvida, entre em contato com o administrador do servidor.",
+                null,
+                new MessageEmbed.Field("Como funciona?", "Ao clicar no bot\u00E3o de Registro abaixo, voc\u00EA abrir\u00E1 um modal para cadastrar seu email da UFRRJ (@ufrrj.br). Copie o token que voc\u00EA recebeu no email e cole no modal que aparecer\u00E1 ao clicar no bot\u00E3o de autentica\u00E7\u00E3o.", false)
+        );
+
+        channel.sendMessageEmbeds(embed)
+            .addActionRow(Button.primary(TOKEN_REGISTRATION_BUTTON, "Register"), Button.secondary(TOKEN_AUTHENTICATION_BUTTON, "Authenticate"))
+            .queue();
+
         event.reply("Setup finished.").setEphemeral(true).queue();
     }
 

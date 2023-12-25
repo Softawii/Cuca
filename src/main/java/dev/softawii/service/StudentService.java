@@ -5,12 +5,14 @@ import dev.softawii.repository.StudentRepository;
 import dev.softawii.util.EmbedUtil;
 import io.micronaut.data.model.Page;
 import io.micronaut.data.model.Pageable;
+import io.netty.util.internal.StringUtil;
 import jakarta.inject.Singleton;
 import net.dv8tion.jda.api.entities.MessageEmbed;
 import net.dv8tion.jda.api.entities.User;
 import net.dv8tion.jda.api.interactions.components.ActionComponent;
 import net.dv8tion.jda.api.interactions.components.buttons.Button;
 
+import java.time.format.DateTimeFormatter;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
@@ -39,6 +41,7 @@ public class StudentService {
     }
 
     public MessageEmbed getStudentInfo(User user, Student student) {
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss O");
         return embedUtil.generate(
                 EmbedUtil.EmbedLevel.INFO,
                 "Informações do usuário",
@@ -46,7 +49,9 @@ public class StudentService {
                 null,
                 new EmbedUtil.Author(user.getName(), user.getEffectiveAvatarUrl()),
                 new MessageEmbed.Field("Email", student.getEmail(), false),
-                new MessageEmbed.Field("Discord ID", student.getDiscordUserId().toString(), false)
+                new MessageEmbed.Field("Discord ID", student.getDiscordUserId().toString(), false),
+                new MessageEmbed.Field("Data de registro", student.getCreatedAt().format(formatter), false),
+                new MessageEmbed.Field("Data de atualização", student.getUpdatedAt().format(formatter), false)
         );
     }
 
