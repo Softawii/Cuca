@@ -1,36 +1,43 @@
-## Micronaut 4.2.2 Documentation
+# Cuca
 
-- [User Guide](https://docs.micronaut.io/4.2.2/guide/index.html)
-- [API Reference](https://docs.micronaut.io/4.2.2/api/index.html)
-- [Configuration Reference](https://docs.micronaut.io/4.2.2/guide/configurationreference.html)
-- [Micronaut Guides](https://guides.micronaut.io/index.html)
+Cuca is a Discord-bot to authenticate users on a Discord-server using specific domain email-addresses.
 
----
+# Installation
 
-- [Micronaut Gradle Plugin documentation](https://micronaut-projects.github.io/micronaut-gradle-plugin/latest/)
-- [GraalVM Gradle Plugin documentation](https://graalvm.github.io/native-build-tools/latest/gradle-plugin.html)
-- [Shadow Gradle Plugin](https://plugins.gradle.org/plugin/com.github.johnrengelman.shadow)
+- Gradle
+- Java 21
+- Micronaut
+- JDA
+- Postgres
 
-## Feature serialization-jackson documentation
+```agsl
+--discord_token=**** 
+--mail.from=xyz@wkd.br 
+--mail.username=xyz@wkd.br 
+--mail.password="xxxx yyyy zzzz wwww" 
+--html_template_path="D:\source\cuca\src\main\resources\email-template\index.html" 
+--app.discord.event_channel=981332113645240351 
+--curupira.reset=true 
+--dev_env=true
+```
 
-- [Micronaut Serialization Jackson Core documentation](https://micronaut-projects.github.io/micronaut-serialization/latest/guide/)
+# Contributing
 
-## Feature hibernate-jpa documentation
+You can contribute to Cuca by forking this repository and creating a pull-request. Please make sure to follow the [Contribution Guidelines](./docs/CONTRIBUTING.md).
 
-- [Micronaut Hibernate JPA documentation](https://micronaut-projects.github.io/micronaut-sql/latest/guide/index.html#hibernate)
+# Features
 
-## Feature jdbc-hikari documentation
+- [x] Authentication using email-addresses
+- [x] One discord-account per email-address
+- [x] Bruteforce protection
+- [x] Automatic role-assignment
+- [x] Automatic role-removal
+- [x] Manual role-assignment
+- [x] Manual role-removal
+- [x] Gmail support
+- [x] Event logging
+- [x] User management
 
-- [Micronaut Hikari JDBC Connection Pool documentation](https://micronaut-projects.github.io/micronaut-sql/latest/guide/index.html#jdbc)
+# Video
 
-## Feature email-javamail documentation
-
-- [Micronaut Javamail Email documentation](https://micronaut-projects.github.io/micronaut-email/latest/guide/index.html#javamail)
-
-- [https://jakartaee.github.io/mail-api/](https://jakartaee.github.io/mail-api/)
-
-## Feature micronaut-aot documentation
-
-- [Micronaut AOT documentation](https://micronaut-projects.github.io/micronaut-aot/latest/guide/)
-
-
+[![](https://markdown-videos-api.jorgenkh.no/youtube/OihAeT5wYpQ)](https://youtu.be/OihAeT5wYpQ)
