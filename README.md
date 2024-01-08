@@ -40,4 +40,5 @@ You can contribute to Cuca by forking this repository and creating a pull-reques
 
 # Video
 
-[![](https://markdown-videos-api.jorgenkh.no/youtube/OihAeT5wYpQ)](https://youtu.be/OihAeT5wYpQ)
+https://github.com/Softawii/cuca/assets/49878392/7c4939aa-ed12-4270-89ef-ee6d1ff878fe
+
